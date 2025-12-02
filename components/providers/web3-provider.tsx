@@ -50,17 +50,44 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const initializeContracts = async (signer: ethers.Signer) => {
     try {
       console.log("Initializing contracts with signer:", await signer.getAddress());
-      
+      // Ensure there is bytecode at the configured contract addresses
+      try {
+        const provider = signer.provider as any;
+        // ethers.BrowserProvider supports getCode
+        const marketplaceCode = await provider.getCode(NFT_MARKETPLACE_ADDRESS);
+        const nftCode = await provider.getCode(NFT_COLLECTION_ADDRESS);
+
+        if (!marketplaceCode || marketplaceCode === '0x') {
+          throw new Error(`No contract deployed at marketplace address ${NFT_MARKETPLACE_ADDRESS}`);
+        }
+        if (!nftCode || nftCode === '0x') {
+          throw new Error(`No contract deployed at NFT address ${NFT_COLLECTION_ADDRESS}`);
+        }
+      } catch (codeError) {
+        console.error('Contract bytecode check failed:', codeError);
+        // Inform the user and bail out without setting contracts
+        try {
+          (toast as any)({
+            title: 'Contracts Missing',
+            description: 'No contract bytecode found at configured addresses. Deploy contracts or update config/contracts.ts',
+            variant: 'destructive',
+          });
+        } catch {}
+        setMarketplaceContract(null);
+        setNftContract(null);
+        return;
+      }
+
       // Create interfaces from ABIs for proper type checking
       const marketplaceInterface = new ethers.Interface(NFT_MARKETPLACE_ABI);
       const nftInterface = new ethers.Interface(NFT_COLLECTION_ABI);
-      
+
       const marketplaceContract = new ethers.Contract(
         NFT_MARKETPLACE_ADDRESS,
         marketplaceInterface,
         signer
       );
-      
+
       const nftContract = new ethers.Contract(
         NFT_COLLECTION_ADDRESS,
         nftInterface,

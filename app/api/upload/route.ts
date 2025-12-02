@@ -1,126 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
-/**
- * API endpoint để xử lý tải lên ảnh
- */
-export async function POST(request: NextRequest) {
+const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
+
+function ensureUploadDir() {
   try {
-    // Kiểm tra API key và log để debug
-    console.log("PINATA_JWT environment variable check:", {
-      exists: process.env.NEXT_PUBLIC_PINATA_JWT,
-    });
-    
-    if (!process.env.NEXT_PUBLIC_PINATA_JWT) {
-      console.error("PINATA_JWT không được cấu hình");
-      return NextResponse.json(
-        { error: "IPFS service not configured" },
-        { status: 500 }
-      );
+    if (!fs.existsSync(UPLOAD_DIR)) {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
     }
-
-    // Xác định loại request (file hoặc JSON)
-    const contentType = request.headers.get('content-type') || '';
-    
-    // Xử lý JSON metadata
-    if (contentType.includes('application/json')) {
-      const metadata = await request.json();
-      console.log("Uploading JSON metadata to IPFS");
-      
-      try {
-        console.log("Making Pinata JSON request with JWT:", {
-          jwtExists: !!process.env.PINATA_JWT,
-          jwtFirstChars: process.env.PINATA_JWT?.substring(0, 5),
-        });
-        
-        const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`,
-          },
-          body: JSON.stringify(metadata),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error("Pinata JSON upload error:", errorData);
-          throw new Error(`Failed to upload metadata: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("Pinata JSON upload success:", data.IpfsHash);
-        return NextResponse.json({ ipfsHash: data.IpfsHash });
-      } catch (error) {
-        console.error("JSON upload error:", error);
-        throw error;
-      }
-    } 
-    // Xử lý file upload
-    else if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData();
-      const file = formData.get("file") as File;
-      
-      if (!file) {
-        return NextResponse.json(
-          { error: "No file found in request" },
-          { status: 400 }
-        );
-      }
-      
-      console.log(`Uploading file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
-      
-      // Tạo form data cho Pinata
-      const pinataFormData = new FormData();
-      pinataFormData.append('file', file);
-      
-      try {
-        console.log("Making Pinata file upload request with JWT:", {
-          jwtExists: !!process.env.NEXT_PUBLIC_PINATA_JWT,
-          jwtFirstChars: process.env.NEXT_PUBLIC_PINATA_JWT?.substring(0, 5),
-        });
-        
-        const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`,
-          },
-          body: pinataFormData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error("Pinata file upload error:", errorData);
-          throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("Pinata file upload success:", data.IpfsHash);
-        return NextResponse.json({ ipfsHash: data.IpfsHash });
-      } catch (error) {
-        console.error("File upload error:", error);
-        throw error;
-      }
-    } else {
-      return NextResponse.json(
-        { error: "Unsupported content type" },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
-    console.error("Error uploading to IPFS:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to upload to IPFS" },
-      { status: 500 }
-    );
+  } catch (e) {
+    console.error('Failed to create upload directory', e);
   }
 }
 
 /**
- * Cấu hình cho API route
+ * API endpoint để xử lý tải lên file hoặc metadata và lưu cục bộ vào `public/uploads`.
+ * - POST multipart/form-data với trường `file` => trả về `{ url: '/uploads/filename.ext' }`
+ * - POST application/json => lưu file JSON và trả về `{ url: '/uploads/metadata-<ts>.json' }`
  */
+export async function POST(request: NextRequest) {
+  try {
+    ensureUploadDir();
+
+    const contentType = request.headers.get('content-type') || '';
+
+    // JSON metadata
+    if (contentType.includes('application/json')) {
+      const metadata = await request.json();
+      const fileName = `metadata-${Date.now()}.json`;
+      const filePath = path.join(UPLOAD_DIR, fileName);
+
+      fs.writeFileSync(filePath, JSON.stringify(metadata, null, 2), 'utf-8');
+
+      const url = `/uploads/${fileName}`;
+      return NextResponse.json({ url });
+    }
+
+    // multipart/form-data (file)
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const file = formData.get('file') as File | null;
+
+      if (!file) {
+        return NextResponse.json({ error: 'No file found in request' }, { status: 400 });
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const safeName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+      const filePath = path.join(UPLOAD_DIR, safeName);
+      fs.writeFileSync(filePath, buffer);
+
+      const url = `/uploads/${safeName}`;
+      return NextResponse.json({ url });
+    }
+
+    return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 });
+  } catch (err) {
+    console.error('Error in local upload route:', err);
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Upload failed' }, { status: 500 });
+  }
+}
+
 export const config = {
   api: {
     bodyParser: false,
-    responseLimit: '10mb',
+    responseLimit: '50mb',
   },
-}; 
+};

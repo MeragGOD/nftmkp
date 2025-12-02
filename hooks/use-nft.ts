@@ -2,12 +2,13 @@ import { useState, useCallback } from "react";
 import { useContract } from "./use-contract";
 import { useWeb3 } from "./use-web3";
 import { NFT, NFTMetadata } from "@/types/nft";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export function useNFT() {
   const { account } = useWeb3();
   const { nftContract, marketplaceContract } = useContract();
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const loadNFTs = useCallback(async (): Promise<NFT[]> => {
     if (!nftContract || !marketplaceContract) return [];
@@ -86,41 +87,45 @@ export function useNFT() {
 
     try {
       setIsLoading(true);
-      // Upload to IPFS
+      // Upload file to local upload endpoint
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`,
-        },
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
         body: formData,
       });
-      const resJson = await res.json();
-      const imageHash = resJson.IpfsHash;
 
-      // Upload metadata to IPFS
-      const metadata = {
-        name,
-        description,
-        image: `https://gateway.pinata.cloud/ipfs/${imageHash}`,
-      };
+      if (!uploadRes.ok) {
+        throw new Error('File upload failed');
+      }
 
-      const metadataRes = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`,
-        },
+      const uploadJson = await uploadRes.json();
+      const imageUrl = uploadJson.url; // e.g. /uploads/123-filename.png
+
+      // Prepare metadata and upload it as JSON to the same endpoint
+      const metadata = { name, description, image: imageUrl };
+
+      const metadataRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(metadata),
       });
-      const metadataJson = await metadataRes.json();
-      const metadataHash = metadataJson.IpfsHash;
 
-      // Mint NFT
-      const tx = await nftContract.mint(`https://gateway.pinata.cloud/ipfs/${metadataHash}`);
-      await tx.wait();
+      if (!metadataRes.ok) {
+        throw new Error('Metadata upload failed');
+      }
+
+      const metadataJson = await metadataRes.json();
+      const metadataUrl = metadataJson.url; // e.g. /uploads/metadata-123.json
+
+      // Use absolute URL for tokenURI so that tokenURI is accessible
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const tokenURI = origin ? `${origin}${metadataUrl}` : metadataUrl;
+
+      // Mint NFT with tokenURI
+      const tx = await nftContract.mint(tokenURI);
+      if (tx.wait) await tx.wait();
 
       toast({
         title: "Success",

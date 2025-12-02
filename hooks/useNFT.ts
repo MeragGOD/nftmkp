@@ -342,23 +342,23 @@ export function useNFT() {
         throw new Error(`Invalid response format: ${responseText}`);
       }
       
-      const ipfsHash = data.ipfsHash;
-      if (!ipfsHash) {
-        console.error("No IPFS hash in response data:", data);
-        throw new Error("No IPFS hash returned from upload");
+      const uploadUrl = data.url;
+      if (!uploadUrl) {
+        console.error("No URL in response data:", data);
+        throw new Error("No URL returned from upload");
       }
       
-      const tokenURI = `https://ipfs.io/ipfs/${ipfsHash}`;
-      console.log("File uploaded to IPFS:", tokenURI);
+      const imageUrl = uploadUrl.startsWith('http') ? uploadUrl : `${window.location.origin}${uploadUrl}`;
+      console.log("File uploaded:", imageUrl);
 
       // Create metadata
       const metadata = {
         name,
         description,
-        image: tokenURI,
+        image: imageUrl,
       };
 
-      console.log("Uploading metadata to IPFS:", metadata);
+      console.log("Uploading metadata:", metadata);
       const metadataResponse = await fetch("/api/upload", {
         method: "POST",
         headers: {
@@ -385,71 +385,29 @@ export function useNFT() {
         throw new Error(`Invalid metadata response format: ${metadataResponseText}`);
       }
       
-      const metadataHash = metadataData.ipfsHash;
-      if (!metadataHash) {
-        console.error("No IPFS hash in metadata response data:", metadataData);
-        throw new Error("No IPFS hash returned from metadata upload");
+      const metadataUrl = metadataData.url;
+      if (!metadataUrl) {
+        console.error("No URL in metadata response data:", metadataData);
+        throw new Error("No URL returned from metadata upload");
       }
       
-      const metadataURI = `https://ipfs.io/ipfs/${metadataHash}`;
-      console.log("Metadata uploaded to IPFS:", metadataURI);
+      const metadataURI = metadataUrl.startsWith('http') ? metadataUrl : `${window.location.origin}${metadataUrl}`;
+      console.log("Metadata uploaded:", metadataURI);
 
       // Mint NFT using the contract
       console.log("Minting NFT with URI:", metadataURI);
       console.log("Contract details:", {
         address: await nftContract.getAddress(),
         signer: await signer.getAddress(),
-        hasMintToken: typeof nftContract.mintToken === 'function',
-        hasMint: typeof nftContract.mint === 'function'
       });
 
-      // Set a timeout for the transaction
-      const timeoutMs = 30000; // 30 seconds
-      
-      // Create a promise that resolves with the transaction result or rejects after timeout
-      const transactionWithTimeout = async () => {
-        // First try to execute the mintToken function (if available)
-        if (typeof nftContract.mintToken === 'function') {
-          console.log("Using mintToken function...");
-          try {
-            const tx = await nftContract.mintToken(metadataURI);
-            console.log("Minting transaction sent:", tx.hash);
-            const receipt = await tx.wait();
-            console.log("Transaction receipt:", receipt);
-            console.log("NFT minted successfully!");
-            return true;
-          } catch (mintError: any) {
-            console.error("Error with mintToken:", mintError.message);
-            // Fall through to try mint function
-          }
-        }
-        
-        // If mintToken fails or doesn't exist, try the mint function
-        if (typeof nftContract.mint === 'function') {
-          console.log("Using mint function...");
-          const tx = await nftContract.mint(metadataURI);
-          console.log("Minting transaction sent:", tx.hash);
-          const receipt = await tx.wait();
-          console.log("Transaction receipt:", receipt);
-          console.log("NFT minted successfully!");
-          return true;
-        }
-        
-        throw new Error("Neither mint nor mintToken functions available on the contract");
-      };
-
-      // The timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Minting transaction timed out after ${timeoutMs}ms. The transaction might still complete. Check your wallet for confirmation.`));
-        }, timeoutMs);
-      });
-
-      // Race the transaction against the timeout
-      const success = await Promise.race([
-        transactionWithTimeout(),
-        timeoutPromise
-      ]);
+      console.log("Calling mintToken with metadataURI length", metadataURI.length);
+      // Provide an explicit gasLimit to avoid RPC gas estimation failures in some local nodes
+      const tx = await nftContract.mintToken(metadataURI, { gasLimit: 500000 });
+      console.log("Minting transaction sent:", tx.hash);
+      const receipt = await tx.wait();
+      console.log("Transaction receipt:", receipt);
+      console.log("NFT minted successfully!");
 
       toast({
         title: "Success",

@@ -190,6 +190,16 @@ export const NFT_COLLECTION_ABI = [
     stateMutability: "nonpayable"
   },
   {
+    name: "setApprovalForAll",
+    type: "function",
+    inputs: [
+      { name: "operator", type: "address" },
+      { name: "approved", type: "bool" }
+    ],
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
     name: "getTokenCreatorById",
     type: "function",
     inputs: [{ name: "tokenId", type: "uint256" }],
@@ -201,6 +211,20 @@ export const NFT_COLLECTION_ABI = [
     type: "function",
     inputs: [],
     outputs: [{ name: "", type: "uint256[]" }],
+    stateMutability: "view"
+  },
+  {
+    name: "getTokensCreatedByMe",
+    type: "function",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256[]" }],
+    stateMutability: "view"
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view"
   }
 ];
