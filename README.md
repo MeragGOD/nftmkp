@@ -9,6 +9,15 @@ A modern, responsive NFT marketplace built with Next.js, TypeScript, shadcn UI c
 - 💸 List your NFTs for sale with custom pricing
 - 🔍 View detailed NFT information with expandable cards
 - 👤 Interactive user profile menu with account statistics
+- 🔄 Real-time marketplace updates with transaction history
+- 🏷️ NFT categorization and filtering by category
+- 🔎 Advanced search functionality for discovering NFTs
+- 📊 Smart sorting options (recent, price ascending/descending)
+- 💾 Local caching with localStorage for improved performance
+- 📝 IPFS integration for decentralized file storage
+- 🎨 NFT metadata upload with custom category support
+- 🔗 Track transaction history and marketplace activities
+- ⚡ Batch metadata loading for optimized performance
 
 ## Tech Stack
 
@@ -16,6 +25,9 @@ A modern, responsive NFT marketplace built with Next.js, TypeScript, shadcn UI c
 - **UI Components**: shadcn UI (Radix UI), Motion library for animations
 - **Blockchain**: Ethereum (via ethers.js v6)
 - **Smart Contracts**: Solidity 0.8.28, Hardhat, OpenZeppelin
+- **Storage**: IPFS integration for decentralized file storage
+- **Internationalization**: Multi-language support (Locale Provider)
+- **State Management**: React Hooks with Web3Provider
 
 ## Prerequisites
 
@@ -85,14 +97,18 @@ npx hardhat node
 
 1. The home page displays all available NFTs
 2. Click on any NFT card to view detailed information
-3. NFTs can be filtered and sorted (if implemented)
+3. Use the search bar to find NFTs by name or description
+4. Filter NFTs by category using the category dropdown
+5. Sort NFTs by recent, price (low to high), or price (high to low)
 
 ### Creating an NFT
 
 1. Navigate to the "Create NFT" page
 2. Upload an image for your NFT
 3. Fill in the name and description
-4. Click "Create" and approve the transaction in your wallet
+4. Optionally assign a category to your NFT
+5. Click "Create" and approve the transaction in your wallet
+6. Your NFT will be minted and stored on IPFS
 
 ### Buying an NFT
 
@@ -113,27 +129,63 @@ npx hardhat node
 
 1. Navigate to "My NFTs" page to see all NFTs you own
 2. You can list, unlist, or view your NFTs from this page
+3. NFTs displayed with all metadata including category information
+
+### Viewing Transaction History
+
+1. Navigate to the "History" page to view your transaction history
+2. See all marketplace activities and transaction details
+3. Track buying and selling activities in chronological order
 
 ## Components
 
-### ExpandableNFTCard
+### Core NFT Components
 
-Interactive card component that displays NFT information and expands to show detailed view with purchase/listing options.
+**ExpandableNFTCard**: Interactive card component that displays NFT information and expands to show detailed view with purchase/listing options.
 
-### UserProfileMenu
+**NFTList**: Component for displaying collections of NFTs with grid layout support.
 
-User account interface showing wallet address, ETH balance, and NFT statistics. Provides quick access to functions like copying wallet address and viewing on Etherscan.
+**NFTUploader**: File upload component with image preview for NFT creation.
+
+### UI & Layout Components
+
+**UserProfileMenu**: User account interface showing wallet address, ETH balance, and NFT statistics. Provides quick access to functions like copying wallet address and viewing on Etherscan.
+
+**MainLayout**: Primary layout wrapper providing navigation and consistent styling across pages.
+
+### Providers
+
+**Web3Provider**: Manages Ethereum wallet connection and blockchain interaction state.
+
+**ThemeProvider**: Handles light/dark theme switching using next-themes.
+
+**LocaleProvider**: Provides internationalization support with multi-language capability.
 
 ## Development
 
 ### Project Structure
 
 - `/app`: Page components and routes
+  - `/api/upload`: API endpoint for file uploads to IPFS
+  - `/create`: NFT creation page
+  - `/history`: Transaction history page
+  - `/my-nfts`: User's NFT collection management
+  - `/test`: Testing page
 - `/components`: Reusable React components
-- `/hooks`: Custom React hooks for blockchain interaction
+  - `/nft`: NFT-specific components (cards, lists)
+  - `/ui`: shadcn UI component library
+  - `/providers`: Context providers (Web3, Theme, Locale)
+  - `/layout`: Layout components
+- `/hooks`: Custom React hooks for blockchain interaction and utilities
 - `/hardhat`: Smart contracts and deployment scripts
-- `/public`: Static assets
+  - `/contracts`: Solidity smart contracts (NFT, Marketplace)
+  - `/scripts`: Deployment and interaction scripts
+  - `/test`: Contract test suites
+- `/lib`: Utility functions and helpers
+  - `/pinata`: IPFS and file storage utilities
+- `/public`: Static assets and uploaded files
 - `/types`: TypeScript type definitions
+- `/config`: Configuration files for contracts and settings
 
 ## License
 
