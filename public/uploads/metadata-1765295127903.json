@@ -1,0 +1,12 @@
+{
+  "name": "Wallpaper",
+  "description": "qwerty",
+  "image": "http://localhost:3000/uploads/1765295127868-435005245_1150261835999618_2783346501880344373_n.jpg",
+  "category": "Animal",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Animal"
+    }
+  ]
+}

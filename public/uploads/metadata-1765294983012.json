@@ -1,0 +1,12 @@
+{
+  "name": "Dogpipe",
+  "description": "Eyesless",
+  "image": "http://localhost:3000/uploads/1765294982987-462610333_1723002861606033_8471332935154150792_n.jpg",
+  "category": "Animal",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Animal"
+    }
+  ]
+}

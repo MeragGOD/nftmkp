@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export default function CreateNFT() {
   const { connect, isConnected } = useWeb3();
@@ -19,11 +20,13 @@ export default function CreateNFT() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { t } = useLocale();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -48,7 +51,7 @@ export default function CreateNFT() {
 
     try {
       console.log("Starting NFT creation...");
-      await createNFT(file, name, description);
+      await createNFT(file, name, description, category || undefined);
       console.log("NFT created successfully!");
       
       // Set success state
@@ -58,6 +61,7 @@ export default function CreateNFT() {
       setFile(null);
       setName("");
       setDescription("");
+      setCategory("");
       setPreview(null);
       
       // Redirect after short delay
@@ -127,7 +131,7 @@ export default function CreateNFT() {
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Create New NFT</CardTitle>
+              <CardTitle>{t("create_title")}</CardTitle>
             </CardHeader>
             <CardContent>
               {error && (
@@ -140,7 +144,7 @@ export default function CreateNFT() {
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="image">NFT Image</Label>
+                  <Label htmlFor="image">{t("image")}</Label>
                   <div
                     className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition"
                     onClick={() => document.getElementById("image")?.click()}
@@ -183,13 +187,23 @@ export default function CreateNFT() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t("description")}</Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="NFT description"
                     rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="e.g. Art, Music, Collectible"
                   />
                 </div>
 

@@ -1,0 +1,12 @@
+{
+  "name": "Pessi",
+  "description": "Messi",
+  "image": "http://localhost:3000/uploads/1765295078331-a3Zz6Ne_700b.jpg",
+  "category": "Sport",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Sport"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "THE GOAT",
+  "description": "Crister Ronaldo",
+  "image": "http://localhost:3000/uploads/1765295027898-405354240_351325827545444_6725361614156523770_n.jpg",
+  "category": "Sport",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Sport"
+    }
+  ]
+}

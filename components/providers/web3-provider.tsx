@@ -45,6 +45,8 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [nftContract, setNftContract] = useState<ethers.Contract | null>(null);
   const { toast } = useToast();
   const connectionChecked = useRef(false);
+  // Track if user explicitly disconnected to avoid silent auto-reconnect
+  const manuallyDisconnected = useRef(false);
 
   // Function to initialize contracts
   const initializeContracts = async (signer: ethers.Signer) => {
@@ -114,8 +116,20 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
     try {
       setIsConnecting(true);
+      manuallyDisconnected.current = false;
       
-      // Request account access
+      // Ask wallet to show account selector instead of silently reusing last one
+      try {
+        await window.ethereum.request({
+          method: "wallet_requestPermissions",
+          params: [{ eth_accounts: {} }],
+        });
+      } catch (permError) {
+        // If wallet doesn't support the method, continue with regular request
+        console.warn("wallet_requestPermissions not available", permError);
+      }
+
+      // Request account access (will open the wallet UI)
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
@@ -153,6 +167,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   };
 
   const disconnect = () => {
+    manuallyDisconnected.current = true;
     setAccount(null);
     setProvider(null);
     setSigner(null);
@@ -168,6 +183,10 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       connectionChecked.current = true;
       
       console.log("Checking connection...");
+      if (manuallyDisconnected.current) {
+        console.log("Skip auto-connect after manual disconnect");
+        return;
+      }
       
       if (typeof window.ethereum !== "undefined") {
         try {
@@ -244,6 +263,10 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
       const handleConnect = () => {
         console.log("MetaMask connected event");
+        if (manuallyDisconnected.current) {
+          console.log("Ignored connect event after manual disconnect");
+          return;
+        }
         if (!isConnected) {
           connect();
         }

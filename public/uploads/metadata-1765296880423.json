@@ -1,0 +1,12 @@
+{
+  "name": "AleksiB",
+  "description": "i sleep",
+  "image": "http://localhost:3000/uploads/1765296880405-euydvwbd2ov51.png",
+  "category": "Gaming",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Gaming"
+    }
+  ]
+}

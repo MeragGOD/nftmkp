@@ -46,6 +46,22 @@ contract Marketplace is ReentrancyGuard {
         bool canceled
     );
 
+    event MarketItemSold(
+        uint256 indexed marketItemId,
+        address indexed nftContract,
+        uint256 indexed tokenId,
+        address seller,
+        address buyer,
+        uint256 price
+    );
+
+    event MarketItemCanceled(
+        uint256 indexed marketItemId,
+        address indexed nftContract,
+        uint256 indexed tokenId,
+        address seller
+    );
+
     constructor() {
         owner = payable(msg.sender);
     }
@@ -125,6 +141,8 @@ contract Marketplace is ReentrancyGuard {
         marketItemIdToMarketItem[marketItemId].canceled = true;
 
         _tokensCanceledCounter++;
+
+        emit MarketItemCanceled(marketItemId, nftContractAddress, tokenId, msg.sender);
     }
 
     /**
@@ -166,6 +184,8 @@ contract Marketplace is ReentrancyGuard {
         _tokensSoldCounter++;
 
         payable(owner).transfer(listingFee);
+
+        emit MarketItemSold(marketItemId, nftContractAddress, tokenId, marketItemIdToMarketItem[marketItemId].seller, msg.sender, price);
     }
 
     /**

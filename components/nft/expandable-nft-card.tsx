@@ -20,6 +20,7 @@ interface ExpandableNFTCardProps {
     name: string;
     description: string;
     isListed: boolean;
+    category?: string;
   };
   onBuy?: (tokenId: string, price: string) => Promise<void>;
   onList?: (tokenId: string, price: string) => Promise<void>;
@@ -295,6 +296,11 @@ export function ExpandableNFTCard({ nft, onBuy, onList, onUnlist }: ExpandableNF
                           )}
                         </p>
                       </div>
+
+                      <div>
+                        <p className="text-gray-500">Category</p>
+                        <p className="font-medium mt-1">{nft.category || "—"}</p>
+                      </div>
                       
                       <div>
                         <p className="text-gray-500">Token ID</p>
@@ -369,52 +375,51 @@ export function ExpandableNFTCard({ nft, onBuy, onList, onUnlist }: ExpandableNF
       <motion.div
         layoutId={`card-${nft.tokenId}-${id}`}
         onClick={handleCardClick}
-        className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer border transition-colors duration-200"
-        whileHover={{ scale: 1.01, borderColor: 'rgba(0, 0, 0, 0.2)' }}
+        className="p-4 rounded-xl cursor-pointer border transition-colors duration-200 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+        whileHover={{ scale: 1.005, borderColor: 'rgba(0, 0, 0, 0.2)' }}
       >
-        <div className="flex gap-4 flex-col md:flex-row">
-          <motion.div layoutId={`image-${nft.tokenId}-${id}`} className="relative">
-            <div className="h-40 w-40 md:h-14 md:w-14 relative rounded-lg overflow-hidden">
-              <Image
-                src={imageSrc}
-                alt={displayName}
-                fill
-                className="object-cover"
-                onError={handleImageError}
-                sizes="(max-width: 768px) 160px, 56px"
-                loading="lazy" // Use lazy loading for list view
-              />
+        <div className="grid grid-cols-1 md:grid-cols-6 md:items-center gap-3">
+          <div className="flex items-center gap-3">
+            <motion.div layoutId={`image-${nft.tokenId}-${id}`} className="relative">
+              <div className="h-12 w-12 relative rounded-lg overflow-hidden">
+                <Image
+                  src={imageSrc}
+                  alt={displayName}
+                  fill
+                  className="object-cover"
+                  onError={handleImageError}
+                  sizes="48px"
+                  loading="lazy"
+                />
+              </div>
+            </motion.div>
+            <div>
+              <motion.h3
+                layoutId={`title-${nft.tokenId}-${id}`}
+                className="font-medium text-neutral-800 dark:text-neutral-200"
+              >
+                {displayName}
+              </motion.h3>
+              <p className="text-xs text-neutral-500">#{nft.tokenId}</p>
             </div>
-            <div className="absolute top-1 right-1 md:hidden">
-              <Badge variant="secondary" className="font-semibold text-xs bg-black/60 text-white">
-                #{nft.tokenId}
+          </div>
+
+          <div className="text-sm text-neutral-700 dark:text-neutral-200">{nft.category || "—"}</div>
+          <div className="text-sm font-semibold">{displayPrice} ETH</div>
+          <div className="text-sm text-neutral-600 truncate" title={nft.seller}>{sellerShortened}</div>
+          <div className="text-sm text-neutral-600 truncate" title={nft.owner}>{ownerShortened}</div>
+          <div className="flex justify-end">
+            {nft.isListed ? (
+              <Badge variant="outline" className="bg-primary/10 text-primary font-bold">
+                Listed
               </Badge>
-            </div>
-          </motion.div>
-          <div>
-            <motion.h3
-              layoutId={`title-${nft.tokenId}-${id}`}
-              className="font-medium text-neutral-800 dark:text-neutral-200 text-center md:text-left"
-            >
-              {displayName}
-            </motion.h3>
-            <motion.p
-              layoutId={`description-${nft.tokenId}-${id}`}
-              className="text-neutral-600 dark:text-neutral-400 text-center md:text-left text-sm truncate max-w-[200px]"
-            >
-              {displayDescription}
-            </motion.p>
+            ) : (
+              <Badge variant="outline" className="bg-gray-100 text-gray-700">
+                Not listed
+              </Badge>
+            )}
           </div>
         </div>
-        {nft.isListed ? (
-          <Badge variant="outline" className="ml-2 bg-primary/10 text-primary font-bold mt-4 md:mt-0">
-            {displayPrice} ETH
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-gray-100 text-gray-700 mt-4 md:mt-0">
-            Not Listed
-          </Badge>
-        )}
       </motion.div>
     </>
   );

@@ -1,0 +1,12 @@
+{
+  "name": "GK Lebron",
+  "description": "Best Goal Keeper",
+  "image": "http://localhost:3000/uploads/1765294812020-maxresdefault.jpg",
+  "category": "Sport",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Sport"
+    }
+  ]
+}

@@ -16,6 +16,43 @@ export interface MarketItem {
 
 export const NFT_MARKETPLACE_ABI = [
   {
+    type: "event",
+    name: "MarketItemCreated",
+    inputs: [
+      { indexed: true, name: "marketItemId", type: "uint256" },
+      { indexed: true, name: "nftContract", type: "address" },
+      { indexed: true, name: "tokenId", type: "uint256" },
+      { indexed: false, name: "creator", type: "address" },
+      { indexed: false, name: "seller", type: "address" },
+      { indexed: false, name: "owner", type: "address" },
+      { indexed: false, name: "price", type: "uint256" },
+      { indexed: false, name: "sold", type: "bool" },
+      { indexed: false, name: "canceled", type: "bool" }
+    ]
+  },
+  {
+    type: "event",
+    name: "MarketItemSold",
+    inputs: [
+      { indexed: true, name: "marketItemId", type: "uint256" },
+      { indexed: true, name: "nftContract", type: "address" },
+      { indexed: true, name: "tokenId", type: "uint256" },
+      { indexed: false, name: "seller", type: "address" },
+      { indexed: false, name: "buyer", type: "address" },
+      { indexed: false, name: "price", type: "uint256" }
+    ]
+  },
+  {
+    type: "event",
+    name: "MarketItemCanceled",
+    inputs: [
+      { indexed: true, name: "marketItemId", type: "uint256" },
+      { indexed: true, name: "nftContract", type: "address" },
+      { indexed: true, name: "tokenId", type: "uint256" },
+      { indexed: false, name: "seller", type: "address" }
+    ]
+  },
+  {
     name: "createMarketItem",
     type: "function",
     inputs: [

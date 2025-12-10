@@ -74,14 +74,29 @@ export function useNFT() {
       
       // Batch fetch metadata for all tokens
       const metadataPromises = Object.entries(tokenURIs).map(
-        ([tokenId, uri]) => fetch(uri).then(res => res.json())
+        async ([tokenId, uri]) => {
+          try {
+            const data: NFTMetadata = await fetch(uri).then(res => res.json());
+            return { tokenId, data };
+          } catch (err) {
+            console.warn("Failed to fetch metadata for", uri, err);
+            return {
+              tokenId,
+              data: {
+                name: `NFT #${tokenId}`,
+                description: "Metadata unavailable",
+                image: "/placeholder-nft.svg",
+              } satisfies NFTMetadata
+            };
+          }
+        }
       );
       
       const metadataResults = await Promise.all(metadataPromises);
-      const metadataByTokenId: Record<string, any> = {};
+      const metadataByTokenId: Record<string, NFTMetadata> = {};
       
-      Object.keys(tokenURIs).forEach((tokenId, index) => {
-        metadataByTokenId[tokenId] = metadataResults[index];
+      metadataResults.forEach(({ tokenId, data }) => {
+        metadataByTokenId[tokenId] = data;
       });
       
       console.log("Fetched metadata for all tokens");
@@ -97,6 +112,9 @@ export function useNFT() {
             return null;
           }
           
+          const category = (metadata.category ??
+            metadata.attributes?.find((a: any) => a.trait_type?.toLowerCase?.() === "category")?.value)?.toString();
+
           return {
             tokenId: tokenId,
             price: ethers.formatEther(item.price),
@@ -105,6 +123,7 @@ export function useNFT() {
             image: metadata.image,
             name: metadata.name,
             description: metadata.description,
+            category,
             isListed: !item.sold && !item.canceled
           };
         } catch (err) {
@@ -296,7 +315,7 @@ export function useNFT() {
     }
   }, [marketplaceContract, nftContract, account, toast]);
 
-  const createNFT = async (file: File, name: string, description: string) => {
+  const createNFT = async (file: File, name: string, description: string, category?: string) => {
     if (!nftContract || !marketplaceContract) {
       console.error("Contracts not initialized:", { nftContract: !!nftContract, marketplaceContract: !!marketplaceContract });
       throw new Error("Blockchain contracts not initialized. Please ensure your wallet is connected.");
@@ -352,10 +371,16 @@ export function useNFT() {
       console.log("File uploaded:", imageUrl);
 
       // Create metadata
-      const metadata = {
+      const metadata: NFTMetadata = {
         name,
         description,
         image: imageUrl,
+        category,
+        attributes: category
+          ? [
+              { trait_type: "Category", value: category }
+            ]
+          : undefined,
       };
 
       console.log("Uploading metadata:", metadata);
@@ -580,6 +605,65 @@ export function useNFT() {
     }
   };
 
+  const loadMarketHistory = async (): Promise<MarketEvent[]> => {
+    if (!marketplaceContract) return [];
+    const provider = marketplaceContract.runner?.provider;
+    if (!provider) return [];
+
+    try {
+      setIsLoading(true);
+      const latest = await provider.getBlockNumber();
+      const from = latest > 5000 ? latest - 5000 : 0; // recent window to keep it light
+
+      const createdLogs = await marketplaceContract.queryFilter(
+        marketplaceContract.filters.MarketItemCreated?.(),
+        from,
+        latest
+      );
+      const soldLogs = await marketplaceContract.queryFilter(
+        marketplaceContract.filters.MarketItemSold?.(),
+        from,
+        latest
+      );
+      const canceledLogs = await marketplaceContract.queryFilter(
+        marketplaceContract.filters.MarketItemCanceled?.(),
+        from,
+        latest
+      );
+
+      const mapLog = async (log: any, type: MarketEvent["type"]): Promise<MarketEvent> => {
+        const parsed = marketplaceContract.interface.parseLog(log);
+        const args: any = parsed?.args || {};
+        const block = await provider.getBlock(log.blockNumber);
+        return {
+          type,
+          marketItemId: args.marketItemId?.toString() ?? "0",
+          tokenId: args.tokenId?.toString() ?? "0",
+          price: args.price ? ethers.formatEther(args.price) : "0",
+          actor: type === "SOLD" ? args.buyer : args.seller,
+          counterparty: type === "SOLD" ? args.seller : undefined,
+          txHash: log.transactionHash,
+          blockNumber: log.blockNumber,
+          timestamp: block?.timestamp,
+        };
+      };
+
+      const events: MarketEvent[] = [
+        ...(await Promise.all(createdLogs.map((l: any) => mapLog(l, "LISTED")))),
+        ...(await Promise.all(soldLogs.map((l: any) => mapLog(l, "SOLD")))),
+        ...(await Promise.all(canceledLogs.map((l: any) => mapLog(l, "CANCELED")))),
+      ];
+
+      // Sort newest first
+      return events.sort((a, b) => b.blockNumber - a.blockNumber);
+    } catch (error) {
+      console.error("Error loading market history:", error);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     isLoading,
     loadMarketplaceItems,
@@ -588,5 +672,6 @@ export function useNFT() {
     listNFT,
     buyNFT,
     unlistNFT,
+    loadMarketHistory,
   };
 } 

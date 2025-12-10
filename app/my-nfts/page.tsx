@@ -10,6 +10,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export default function MyNFTs() {
   const { isConnected, connect, account } = useWeb3();
@@ -18,8 +19,34 @@ export default function MyNFTs() {
   const [loadingState, setLoadingState] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { t } = useLocale();
   
   console.log("MyNFTs page - isConnected:", isConnected, "account:", account);
+
+  // Load from localStorage on mount or when account changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && account) {
+      const storageKey = `closeland_my_nfts_${account.toLowerCase()}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setNfts(parsed);
+          setLoadingState("success");
+        } catch (e) {
+          console.error("Error loading cached NFTs:", e);
+        }
+      }
+    }
+  }, [account]);
+
+  // Save to localStorage whenever NFTs change for this account
+  useEffect(() => {
+    if (typeof window !== "undefined" && account && nfts.length >= 0) {
+      const storageKey = `closeland_my_nfts_${account.toLowerCase()}`;
+      localStorage.setItem(storageKey, JSON.stringify(nfts));
+    }
+  }, [nfts, account]);
 
   const fetchNFTs = useCallback(async (forceRefresh = false) => {
     if (!isConnected) return;
@@ -28,7 +55,10 @@ export default function MyNFTs() {
       if (forceRefresh) {
         setIsRefreshing(true);
       } else {
-        setLoadingState("loading");
+        // Only show loading if we don't have cached data
+        if (nfts.length === 0) {
+          setLoadingState("loading");
+        }
       }
       
       setError(null);
@@ -46,7 +76,7 @@ export default function MyNFTs() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [isConnected, loadNFTs]);
+  }, [isConnected, loadNFTs, nfts.length]);
 
   useEffect(() => {
     if (isConnected) {
@@ -93,25 +123,25 @@ export default function MyNFTs() {
     <MainLayout>
       {!isConnected ? (
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            My NFTs
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            {t("my_nfts_title")}
           </h2>
           <p className="text-gray-500 mb-8">
             Connect your wallet to view your NFTs
           </p>
-          <Button onClick={connect}>Connect Wallet</Button>
+          <Button onClick={connect}>{t("connect_wallet")}</Button>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-900">My NFTs</h2>
+            <h2 className="text-2xl font-bold text-foreground">{t("my_nfts_title")}</h2>
             <Button 
               onClick={() => fetchNFTs(true)} 
               disabled={isRefreshing || loadingState === "loading"}
               className="flex items-center gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? "Refreshing..." : "Refresh"}
+              {isRefreshing ? t("loading") : t("refresh")}
             </Button>
           </div>
 

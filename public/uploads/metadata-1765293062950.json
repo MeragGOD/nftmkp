@@ -1,0 +1,12 @@
+{
+  "name": "Quạ",
+  "description": "vip",
+  "image": "http://localhost:3000/uploads/1765293062917-1d62e97d50201422434a55e4c3aba884.jpg",
+  "category": "Animal",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "Animal"
+    }
+  ]
+}
